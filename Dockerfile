@@ -1,18 +1,13 @@
-FROM python:3.12-slim
+FROM mcr.microsoft.com/playwright/python:v1.47.0-jammy
 
 WORKDIR /app
-
-# Dependencias del sistema necesarias para Playwright/Chromium
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Instala Chromium y sus dependencias del sistema para Playwright
-RUN playwright install --with-deps chromium
+# La imagen base ya incluye Chromium y todas sus dependencias del sistema
+# (Ubuntu Jammy, oficialmente soportada por Playwright), así que no hace
+# falta correr "playwright install" aquí.
 
 COPY . .
 
