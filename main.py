@@ -37,3 +37,16 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.get("/debug-env")
+def debug_env():
+    """Endpoint temporal de diagnóstico. Eliminar después de resolver el problema de variables."""
+    import os
+    return {
+        "OPENAI_API_KEY_existe": bool(os.getenv("OPENAI_API_KEY")),
+        "OPENAI_API_KEY_largo": len(os.getenv("OPENAI_API_KEY", "")),
+        "SUPABASE_URL_existe": bool(os.getenv("SUPABASE_URL")),
+        "OCR_SPACE_API_KEY_existe": bool(os.getenv("OCR_SPACE_API_KEY")),
+        "SUPABASE_SERVICE_KEY_existe": bool(os.getenv("SUPABASE_SERVICE_KEY")),
+    }
