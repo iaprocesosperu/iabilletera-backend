@@ -32,6 +32,72 @@ class ConfirmarCompraInput(BaseModel):
     fecha: str | None = None
 
 
+class RegistroManualInput(BaseModel):
+    user_id: str
+    producto_nombre: str
+    cantidad: float = 1
+    precio_unitario: float
+    observacion: str | None = None
+    tienda: str | None = None
+    fecha: str | None = None
+
+
+@router.post("/registro-manual")
+async def registro_manual(payload: RegistroManualInput):
+    """
+    Registro 100% manual desde formulario: producto, precio, cantidad, observación.
+    NUNCA llama a OpenAI. Si el producto es nuevo, se crea sin categoría (sin clasificar).
+    Si ya existe (match exacto/alto por nombre), reutiliza su categoría existente.
+    """
+    from datetime import date
+
+    supabase = get_supabase()
+    fecha_final = payload.fecha or date.today().isoformat()
+    precio_total = round(payload.precio_unitario * payload.cantidad, 2)
+
+    catalogo_resp = supabase.table("productos").select("id, nombre_normalizado").eq(
+        "user_id", payload.user_id
+    ).execute()
+    catalogo = catalogo_resp.data or []
+
+    match = buscar_match(payload.producto_nombre, catalogo)
+    producto_nuevo = False
+
+    if match.confianza == "alta":
+        producto_id = match.producto_id
+    else:
+        nombre_normalizado = normalizar_nombre(payload.producto_nombre)
+        nuevo = supabase.table("productos").insert({
+            "user_id": payload.user_id,
+            "nombre": payload.producto_nombre.strip().title(),
+            "nombre_normalizado": nombre_normalizado,
+            "categoria": None,
+            "categoria_confianza": None,
+            "observacion_clasificacion": "Creado manualmente, sin clasificar por IA.",
+        }).execute()
+        producto_id = nuevo.data[0]["id"]
+        producto_nuevo = True
+
+    compra = supabase.table("compras").insert({
+        "user_id": payload.user_id,
+        "producto_id": producto_id,
+        "cantidad": payload.cantidad,
+        "precio_unitario": payload.precio_unitario,
+        "precio_total": precio_total,
+        "tienda": payload.tienda,
+        "fecha": fecha_final,
+        "origen": "manual",
+        "texto_ocr_crudo": payload.observacion,
+    }).execute()
+
+    return {
+        "compra_id": compra.data[0]["id"],
+        "producto_id": producto_id,
+        "producto_nuevo": producto_nuevo,
+        "total_gastado": precio_total,
+    }
+
+
 @router.post("/procesar")
 async def procesar_texto_libre(payload: TextoLibreInput):
     try:
