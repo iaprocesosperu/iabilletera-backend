@@ -25,7 +25,10 @@ async def procesar_boleta(
     fecha: str | None = Form(None),
     imagen: UploadFile = File(...),
 ):
+    from datetime import date
+
     supabase = get_supabase()
+    fecha_final = fecha or date.today().isoformat()
 
     # 1. OCR
     imagen_bytes = await imagen.read()
@@ -96,7 +99,7 @@ async def procesar_boleta(
             "precio_total": linea.precio_total,
             "presentacion": linea.presentacion,
             "tienda": tienda,
-            "fecha": fecha,
+            "fecha": fecha_final,
             "origen": "foto_boleta",
             "necesita_revision": linea.necesita_revision,
             "texto_ocr_crudo": linea.texto_ocr_crudo,

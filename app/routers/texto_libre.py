@@ -98,7 +98,10 @@ async def _guardar_compra(
     fecha: str | None,
     origen: str,
 ) -> dict:
+    from datetime import date
+
     supabase = get_supabase()
+    fecha_final = fecha or date.today().isoformat()
 
     catalogo_resp = supabase.table("productos").select("id, nombre_normalizado").eq(
         "user_id", user_id
@@ -135,7 +138,7 @@ async def _guardar_compra(
         "precio_unitario": precio_unitario,
         "precio_total": precio_total,
         "tienda": tienda,
-        "fecha": fecha,
+        "fecha": fecha_final,
         "origen": origen,
     }).execute()
 
